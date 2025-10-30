@@ -1,4 +1,4 @@
-name: anythingllm
+name: agenticflo-anythingllm
 
 networks:
   anything-llm:
@@ -6,7 +6,7 @@ networks:
 
 services:
   anything-llm:
-    container_name: anythingllm
+    container_name: agenticflo-anythingllm
     build:
       context: ../.
       dockerfile: ./docker/Dockerfile
