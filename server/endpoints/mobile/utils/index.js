@@ -139,7 +139,7 @@ async function handleMobileCommand(request, response) {
   }
 
   if (command === "stream-chat") {
-    const { workspaceSlug = null, threadSlug = null, message } = body;
+    const { workspaceSlug = null, threadSlug = null, message, docIds } = body;
     if (!workspaceSlug)
       return response.status(400).json({ error: "Workspace ID is required" });
     else if (!message)
@@ -176,6 +176,7 @@ async function handleMobileCommand(request, response) {
       sessionId: null,
       attachments: [],
       reset: false,
+      docIds,
     });
     return response.end();
   }

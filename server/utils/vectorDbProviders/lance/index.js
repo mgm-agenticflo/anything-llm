@@ -59,6 +59,20 @@ const LanceDb = {
     return (await table.countRows()) || 0;
   },
   /**
+   * Build SQL filter for docIds
+   * @param {string[]} docIds - Array of docIds to filter by
+   * @returns {string|null} SQL filter string or null
+   */
+  buildDocIdFilter: function (docIds = []) {
+    if (!docIds || docIds.length === 0) return null;
+
+    // Create IN clause for docIds
+    const escapedIds = docIds
+      .map((id) => `'${id.replace(/'/g, "''")}'`)
+      .join(", ");
+    return `doc_id IN (${escapedIds})`;
+  },
+  /**
    * Performs a SimilaritySearch + Reranking on a namespace.
    * @param {Object} params - The parameters for the rerankedSimilarityResponse.
    * @param {Object} params.client - The vectorDB client.
@@ -68,6 +82,7 @@ const LanceDb = {
    * @param {number} params.similarityThreshold - The threshold for similarity.
    * @param {number} params.topN - the number of results to return from this process.
    * @param {string[]} params.filterIdentifiers - The identifiers of the documents to filter out.
+   * @param {string[]} params.docIds - Array of docIds to limit search to specific documents.
    * @returns
    */
   rerankedSimilarityResponse: async function ({
@@ -78,6 +93,7 @@ const LanceDb = {
     topN = 4,
     similarityThreshold = 0.25,
     filterIdentifiers = [],
+    docIds = [],
   }) {
     const reranker = new NativeEmbeddingReranker();
     const collection = await client.openTable(namespace);
@@ -105,11 +121,22 @@ const LanceDb = {
       10,
       Math.min(50, Math.ceil(totalEmbeddings * 0.1))
     );
-    const vectorSearchResults = await collection
+
+    let searchQuery = collection
       .vectorSearch(queryVector)
       .distanceType("cosine")
-      .limit(searchLimit)
-      .toArray();
+      .limit(searchLimit);
+
+    // Apply docId filter if docIds are provided
+    const docIdFilter = this.buildDocIdFilter(docIds);
+    if (docIdFilter) {
+      console.log(
+        `LanceDB: Filtering search to ${docIds.length} specific document(s)`
+      );
+      searchQuery = searchQuery.where(docIdFilter);
+    }
+
+    const vectorSearchResults = await searchQuery.toArray();
 
     await reranker
       .rerank(query, vectorSearchResults, { topK: topN })
@@ -152,6 +179,7 @@ const LanceDb = {
    * @param {number} params.similarityThreshold
    * @param {number} params.topN
    * @param {string[]} params.filterIdentifiers
+   * @param {string[]} params.docIds - Array of docIds to limit search to specific documents
    * @returns
    */
   similarityResponse: async function ({
@@ -161,6 +189,7 @@ const LanceDb = {
     similarityThreshold = 0.25,
     topN = 4,
     filterIdentifiers = [],
+    docIds = [],
   }) {
     const collection = await client.openTable(namespace);
     const result = {
@@ -169,11 +198,21 @@ const LanceDb = {
       scores: [],
     };
 
-    const response = await collection
+    let searchQuery = collection
       .vectorSearch(queryVector)
       .distanceType("cosine")
-      .limit(topN)
-      .toArray();
+      .limit(topN);
+
+    // Apply docId filter if docIds are provided
+    const docIdFilter = this.buildDocIdFilter(docIds);
+    if (docIdFilter) {
+      console.log(
+        `LanceDB: Filtering search to ${docIds.length} specific document(s)`
+      );
+      searchQuery = searchQuery.where(docIdFilter);
+    }
+
+    const response = await searchQuery.toArray();
 
     response.forEach((item) => {
       if (this.distanceToSimilarity(item._distance) < similarityThreshold)
@@ -301,7 +340,12 @@ const LanceDb = {
               const id = uuidv4();
               const { id: _id, ...metadata } = chunk.metadata;
               documentVectors.push({ docId, vectorId: id });
-              submissions.push({ id: id, vector: chunk.values, ...metadata });
+              submissions.push({
+                id: id,
+                doc_id: documentData.id ?? docId,
+                vector: chunk.values,
+                ...metadata,
+              });
             });
           }
 
@@ -354,6 +398,7 @@ const LanceDb = {
             ...vectorRecord.metadata,
             id: vectorRecord.id,
             vector: vectorRecord.values,
+            doc_id: documentData.id ?? docId,
           });
           documentVectors.push({ docId, vectorId: vectorRecord.id });
         }
@@ -388,6 +433,7 @@ const LanceDb = {
     topN = 4,
     filterIdentifiers = [],
     rerank = false,
+    docIds = [],
   }) {
     if (!namespace || !input || !LLMConnector)
       throw new Error("Invalid request to performSimilaritySearch.");
@@ -411,6 +457,7 @@ const LanceDb = {
           similarityThreshold,
           topN,
           filterIdentifiers,
+          docIds,
         })
       : await this.similarityResponse({
           client,
@@ -419,6 +466,7 @@ const LanceDb = {
           similarityThreshold,
           topN,
           filterIdentifiers,
+          docIds,
         });
 
     const { contextTexts, sourceDocuments } = result;

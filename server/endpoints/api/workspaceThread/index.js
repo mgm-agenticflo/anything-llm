@@ -353,7 +353,8 @@ function apiWorkspaceThreadEndpoints(app) {
                  contentString: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
                }
               ],
-              reset: false
+              reset: false,
+              docIds: ["document-id-1", "document-id-2"]
             }
           }
         }
@@ -389,6 +390,7 @@ function apiWorkspaceThreadEndpoints(app) {
           userId,
           attachments = [],
           reset = false,
+          docIds = [],
         } = reqBody(request);
         const workspace = await Workspace.get({ slug });
         const thread = await WorkspaceThread.get({
@@ -431,6 +433,7 @@ function apiWorkspaceThreadEndpoints(app) {
           thread,
           attachments,
           reset,
+          docIds,
         });
         await Telemetry.sendTelemetry("sent_chat", {
           LLMSelection: process.env.LLM_PROVIDER || "openai",
@@ -495,7 +498,8 @@ function apiWorkspaceThreadEndpoints(app) {
                  contentString: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
                }
               ],
-              reset: false
+              reset: false,
+              docIds: ["document-id-1", "document-id-2"]
             }
           }
         }
@@ -552,6 +556,7 @@ function apiWorkspaceThreadEndpoints(app) {
           userId,
           attachments = [],
           reset = false,
+          docIds = [],
         } = reqBody(request);
         const workspace = await Workspace.get({ slug });
         const thread = await WorkspaceThread.get({
@@ -602,6 +607,7 @@ function apiWorkspaceThreadEndpoints(app) {
           thread,
           attachments,
           reset,
+          docIds,
         });
         await Telemetry.sendTelemetry("sent_chat", {
           LLMSelection: process.env.LLM_PROVIDER || "openai",

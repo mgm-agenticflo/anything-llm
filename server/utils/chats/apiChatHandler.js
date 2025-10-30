@@ -37,6 +37,7 @@ const { Telemetry } = require("../../models/telemetry");
  *  sessionId: string|null,
  *  attachments: { name: string; mime: string; contentString: string }[],
  *  reset: boolean,
+ *  docIds: string[],
  * }} parameters
  * @returns {Promise<ResponseObject>}
  */
@@ -49,6 +50,7 @@ async function chatSync({
   sessionId = null,
   attachments = [],
   reset = false,
+  docIds = [],
 }) {
   const uuid = uuidv4();
   const chatMode = mode ?? "chat";
@@ -218,6 +220,7 @@ async function chatSync({
           topN: workspace?.topN,
           filterIdentifiers: pinnedDocIdentifiers,
           rerank: workspace?.vectorSearchMode === "rerank",
+          docIds,
         })
       : {
           contextTexts: [],
@@ -360,6 +363,7 @@ async function chatSync({
  *  sessionId: string|null,
  *  attachments: { name: string; mime: string; contentString: string }[],
  *  reset: boolean,
+ *  docIds: string[],
  * }} parameters
  * @returns {Promise<VoidFunction>}
  */
@@ -373,6 +377,7 @@ async function streamChat({
   sessionId = null,
   attachments = [],
   reset = false,
+  docIds = [],
 }) {
   const uuid = uuidv4();
   const chatMode = mode ?? "chat";
@@ -554,6 +559,7 @@ async function streamChat({
           topN: workspace?.topN,
           filterIdentifiers: pinnedDocIdentifiers,
           rerank: workspace?.vectorSearchMode === "rerank",
+          docIds,
         })
       : {
           contextTexts: [],
